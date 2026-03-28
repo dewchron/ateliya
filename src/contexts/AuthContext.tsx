@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { supabase } from '../lib/supabase';
 import { sendOtp as sendOtpService, verifyOtp as verifyOtpService } from '../services/auth.service';
 import { getProfile } from '../services/profile.service';
+import { checkUnverifiedCustomer, type UnverifiedResult } from '../services/claim.service';
 import type { Session } from '@supabase/supabase-js';
 import type { Profile } from '../types/database.types';
 
@@ -13,6 +14,7 @@ interface AuthContextValue {
   gender: 'male' | 'female' | null;
   needsOnboarding: boolean;
   phoneNumber: string;
+  unverifiedResult: UnverifiedResult | null;
   sendOtp: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, token: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -27,6 +29,7 @@ const AuthContext = createContext<AuthContextValue>({
   gender: null,
   needsOnboarding: false,
   phoneNumber: '',
+  unverifiedResult: null,
   sendOtp: async () => {},
   verifyOtp: async () => {},
   signOut: async () => {},
@@ -38,6 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profileLoaded, setProfileLoaded] = useState(false);
+  const [unverifiedResult, setUnverifiedResult] = useState<UnverifiedResult | null>(null);
 
   const fetchProfile = useCallback(async () => {
     setProfileLoaded(false);
@@ -51,7 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Track the current user ID so we can detect same-user SIGNED_IN events
-  // (Supabase fires SIGNED_IN on every tab visibility change via _recoverAndRefresh)
   const currentUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -70,25 +73,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        // Skip TOKEN_REFRESHED — fired on tab focus, causes unnecessary re-renders
         if (event === 'TOKEN_REFRESHED') return;
 
         const newUserId = newSession?.user?.id ?? null;
 
-        // Skip SIGNED_IN for the same user — Supabase fires this on every
-        // tab visibility change (hidden→visible). Without this guard,
-        // fetchProfile() resets profileLoaded→false, which shows the loading
-        // spinner and unmounts/remounts the entire Stack, looking like a
-        // full page reload.
-        if (event === 'SIGNED_IN' && newUserId === currentUserIdRef.current) {
-          setSession(newSession); // still update session object for fresh tokens
-          return;
-        }
-
         setSession(newSession);
-        currentUserIdRef.current = newUserId;
 
         if (event === 'SIGNED_IN') {
+          const isSameUser = newUserId === currentUserIdRef.current;
+          currentUserIdRef.current = newUserId;
+
+          // Check for unverified customer BEFORE fetching profile
+          // so that details.tsx has unverifiedResult when it mounts
+          const phone = newSession?.user?.phone;
+          console.log('[AUTH] SIGNED_IN phone:', phone, 'sameUser:', isSameUser);
+          if (phone) {
+            try {
+              const result = await checkUnverifiedCustomer(phone);
+              console.log('[AUTH] unverified result:', JSON.stringify(result));
+              setUnverifiedResult(result);
+            } catch (err) {
+              console.log('[AUTH] unverified check error:', err);
+              setUnverifiedResult(null);
+            }
+          }
+          // fetchProfile AFTER claim check completes
           await fetchProfile();
         } else if (event === 'SIGNED_OUT') {
           setProfile(null);
@@ -112,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     setSession(null);
     setProfile(null);
+    setUnverifiedResult(null);
   };
 
   const refreshProfile = useCallback(async () => {
@@ -134,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         gender,
         needsOnboarding,
         phoneNumber,
+        unverifiedResult,
         sendOtp,
         verifyOtp,
         signOut,

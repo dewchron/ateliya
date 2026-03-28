@@ -107,7 +107,7 @@ export default function CartScreen() {
     setPaying(true);
     try {
       const services = state.cart.map((c) => ({
-        serviceType: c.serviceName || c.serviceId,
+        serviceType: c.serviceId,
         quantity: c.quantity,
       }));
 

@@ -39,7 +39,7 @@ import { submitContactForm } from '../../src/services/contact.service';
 
 const DARK_SAGE = '#5a6b52';
 
-const KIOSK_ICONS: Record<string, any> = {
+const SERVICE_ICONS: Record<string, any> = {
   'saree fall & pico': require('../../assets/images/svc-saree-fall-new.png'),
   'alterations': require('../../assets/images/svc-alterations.png'),
   'flexfit blouse': require('../../assets/images/svc-flexfit-blouse.png'),
@@ -139,7 +139,7 @@ export default function LandingScreen() {
           {isWide ? (
             <>
               <Image
-                source={require('../../Branding/Logo - Light BG.png')}
+                source={require('../../assets/images/logo-light.png')}
                 style={styles.headerLogo}
                 resizeMode="contain"
               />
@@ -158,7 +158,7 @@ export default function LandingScreen() {
           ) : (
             <>
               <Image
-                source={require('../../Branding/Logo - Light BG.png')}
+                source={require('../../assets/images/logo-light.png')}
                 style={styles.headerLogo}
                 resizeMode="contain"
               />
@@ -194,10 +194,17 @@ export default function LandingScreen() {
               </View>
               <Pressable
                 style={({ pressed }) => [styles.pillBtn, { alignSelf: 'center', marginTop: spacing.lg }, pressed && styles.pressed]}
-                onPress={track('hero-cta', 'GET STARTED', 'hero', go)}
+                onPress={track('hero-cta', 'GET STARTED', 'hero', () => Linking.openURL('https://wa.me/917702603311?text=Hi%2C%20I%20would%20like%20to%20Schedule%20a%20Pick%20Up'))}
               >
                 <Text style={styles.pillBtnText}>GET STARTED</Text>
               </Pressable>
+
+              <Text style={styles.signIn}>
+                Already have an account?{' '}
+                <Text style={styles.signInLink} onPress={track('sign-in-link-hero', 'Sign In', 'hero', go)}>
+                  Sign In
+                </Text>
+              </Text>
             </>
           </Section>
         </View>
@@ -209,23 +216,23 @@ export default function LandingScreen() {
         <View onLayout={trackSection('services')}>
           <Section style={styles.services} isWide={isWide} innerStyle={{ alignItems: 'center' }}>
             <>
-              {/* Kiosk */}
+              {/* Services */}
               <View style={styles.serviceGroup}>
                 <View style={styles.subHeaderRow}>
                   <View style={styles.subHeaderLine} />
-                  <Text style={styles.subHeader}>Kiosk</Text>
+                  <Text style={styles.subHeader}>Services</Text>
                   <View style={styles.subHeaderLine} />
                 </View>
                 <Text style={styles.subHeaderDesc}>
                   Bringing our expert services to your doorstep
                 </Text>
-                <View style={[styles.cardGrid3, isWide && { gap: spacing.md }]}>
-                  {KIOSK_SERVICES.map((s) => (
-                    <View key={s.title} style={[styles.serviceCard, isWide && styles.serviceCardWide]}>
+                <View style={[isWide ? styles.cardGrid3 : styles.cardGrid2x2, isWide && { gap: spacing.md }]}>
+                  {DOORSTEP_SERVICES.map((s) => (
+                    <View key={s.title} style={[styles.serviceCard, !isWide && styles.serviceCard2x2, isWide && styles.serviceCardWide]}>
                       <View style={[styles.cardIconBadge, isWide && styles.cardIconBadgeWide, { marginBottom: spacing.md }]}>
                         <Image
-                          source={KIOSK_ICONS[s.title.toLowerCase()]}
-                          style={[styles.kioskIconImg, isWide && styles.kioskIconImgWide]}
+                          source={SERVICE_ICONS[s.title.toLowerCase()]}
+                          style={[styles.serviceIconImg, isWide && styles.serviceIconImgWide]}
                           resizeMode="contain"
                         />
                       </View>
@@ -270,7 +277,7 @@ export default function LandingScreen() {
 
             <Pressable
               style={({ pressed }) => [styles.pillBtn, pressed && styles.pressed]}
-              onPress={track('services-cta', 'BOOK A SERVICE', 'services', go)}
+              onPress={track('services-cta', 'BOOK A SERVICE', 'services', () => Linking.openURL('https://wa.me/917702603311?text=Hi%2C%20I%20would%20like%20to%20Schedule%20a%20Pick%20Up'))}
             >
               <Text style={styles.pillBtnText}>BOOK A SERVICE</Text>
             </Pressable>
@@ -438,7 +445,7 @@ export default function LandingScreen() {
 
             <Pressable
               style={({ pressed }) => [styles.pillBtn, pressed && styles.pressed]}
-              onPress={track('contact-cta', 'GET STARTED', 'contact', go)}
+              onPress={track('contact-cta', 'GET STARTED', 'contact', () => Linking.openURL('https://wa.me/917702603311?text=Hi%2C%20I%20would%20like%20to%20Schedule%20a%20Pick%20Up'))}
             >
               <Text style={styles.pillBtnText}>GET STARTED</Text>
             </Pressable>
@@ -455,7 +462,7 @@ export default function LandingScreen() {
         {/* ─── FOOTER ─── */}
         <View style={styles.footer}>
           <Image
-            source={require('../../Branding/Logo - Light BG.png')}
+            source={require('../../assets/images/logo-light.png')}
             style={[styles.footerLogo, { tintColor: '#fff' }]}
             resizeMode="contain"
           />
@@ -618,7 +625,7 @@ export default function LandingScreen() {
 }
 
 /* ─── Data ─── */
-const KIOSK_SERVICES = [
+const DOORSTEP_SERVICES = [
   {
     icon: Scissors,
     title: 'Saree Fall & Pico',
@@ -991,6 +998,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
     width: '100%',
+    justifyContent: 'space-between',
   },
   cardGrid2: {
     flexDirection: 'row',
@@ -998,8 +1006,10 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   serviceCard2x2: {
-    width: '48%',
-    flex: 0,
+    flexBasis: '47%',
+    flexGrow: 0,
+    flexShrink: 0,
+    maxWidth: '47%',
   },
   serviceCard: {
     flex: 1,
@@ -1032,11 +1042,11 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: radii.lg,
   },
-  kioskIconImg: {
+  serviceIconImg: {
     width: 36,
     height: 36,
   },
-  kioskIconImgWide: {
+  serviceIconImgWide: {
     width: 52,
     height: 52,
   },
@@ -1311,6 +1321,7 @@ const styles = StyleSheet.create({
     ...typography.bodySmall,
     color: colors.mutedForeground,
     marginTop: spacing.lg,
+    textAlign: 'center',
   },
   signInLink: {
     color: colors.primary,

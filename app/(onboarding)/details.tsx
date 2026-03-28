@@ -9,7 +9,7 @@ import { MobileContainer } from '../../src/components/MobileContainer';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useToast } from '../../src/contexts/ToastContext';
 import { updateProfile } from '../../src/services/profile.service';
-import { upsertAddress } from '../../src/services/address.service';
+import { getAddresses, upsertAddress } from '../../src/services/address.service';
 import { getCommunities } from '../../src/services/community.service';
 import { colors, spacing, radii, typography } from '../../src/constants/theme';
 import type { CommunityRow } from '../../src/types/database.types';
@@ -32,11 +32,13 @@ function loadGoogleMaps(): Promise<typeof google> {
 
 export default function DetailsScreen() {
   const router = useRouter();
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, unverifiedResult, profile } = useAuth();
   const { showToast } = useToast();
 
+  // Unverified customers: skip map if address exists, pre-fill name
+  const isUnverified = unverifiedResult?.unverified === true;
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [name, setName] = useState('');
+  const [name, setName] = useState(unverifiedResult?.name || '');
   const [saving, setSaving] = useState(false);
 
   // Map state
@@ -84,6 +86,28 @@ export default function DetailsScreen() {
   useEffect(() => {
     getCommunities().then(setCommunities).catch(() => {});
   }, []);
+
+  // Pre-fill address for unverified customers
+  useEffect(() => {
+    if (isUnverified && unverifiedResult?.had_address) {
+      getAddresses().then((addrs) => {
+        const defaultAddr = addrs.find((a) => a.is_default) || addrs[0];
+        if (defaultAddr) {
+          const addrLine = defaultAddr.address_line || '';
+          const lm = defaultAddr.landmark || '';
+          // Extract flat number: address_line is "41, Vessella Villas", landmark is "Vessella Villas"
+          let flat = '';
+          if (lm && addrLine.includes(lm)) {
+            flat = addrLine.replace(lm, '').replace(/^[\s,]+|[\s,]+$/g, '');
+          }
+          setPlaceName(lm || addrLine);
+          setPlaceAddress(defaultAddr.city || '');
+          setFlatNo(flat);
+          setLandmark(lm);
+        }
+      }).catch(() => {});
+    }
+  }, [isUnverified]);
 
   const formatDate = (d: string) => {
     const dt = new Date(d + 'T00:00:00');
@@ -256,17 +280,42 @@ export default function DetailsScreen() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateProfile({ full_name: name.trim() });
-      const addressLine = flatNo.trim()
-        ? `${flatNo.trim()}, ${placeName}`
-        : placeName;
-      await upsertAddress({
-        address_line: addressLine || undefined,
-        city: placeAddress || undefined,
-        pin_code: matchedCommunity?.pincode || undefined,
-        landmark: landmark.trim() || undefined,
-        is_default: true,
-      });
+      // Always update name if provided
+      if (name.trim()) {
+        await updateProfile({ full_name: name.trim() });
+      }
+
+      if (isUnverified && unverifiedResult?.had_address) {
+        // For unverified users, address was already transferred.
+        // Update it if the user made edits.
+        const addrs = await getAddresses();
+        const defaultAddr = addrs.find((a) => a.is_default) || addrs[0];
+        if (defaultAddr) {
+          const updatedLine = flatNo.trim()
+            ? `${flatNo.trim()}, ${placeName}`
+            : placeName;
+          await upsertAddress({
+            id: defaultAddr.id,
+            address_line: updatedLine || defaultAddr.address_line || undefined,
+            city: placeAddress || defaultAddr.city || undefined,
+            landmark: landmark.trim() || defaultAddr.landmark || undefined,
+            is_default: true,
+          });
+        }
+      } else {
+        // Normal flow — create new address from map selection
+        const addressLine = flatNo.trim()
+          ? `${flatNo.trim()}, ${placeName}`
+          : placeName;
+        await upsertAddress({
+          address_line: addressLine || undefined,
+          city: placeAddress || undefined,
+          pin_code: matchedCommunity?.pincode || undefined,
+          landmark: landmark.trim() || undefined,
+          is_default: true,
+        });
+      }
+
       await refreshProfile();
       router.replace('/(tabs)');
     } catch (err: any) {
@@ -294,11 +343,11 @@ export default function DetailsScreen() {
               onChangeText={setName}
               autoFocus
               returnKeyType="done"
-              onSubmitEditing={() => { if (canGo) setStep(2); }}
+              onSubmitEditing={() => { if (canGo) setStep(isUnverified && unverifiedResult?.had_address ? 3 : 2); }}
             />
             <Pressable
               style={({ pressed }) => [st.pillBtn, !canGo && st.disabled, pressed && canGo && st.pressed]}
-              onPress={() => { if (canGo) setStep(2); }}
+              onPress={() => { if (canGo) setStep(isUnverified && unverifiedResult?.had_address ? 3 : 2); }}
               disabled={!canGo}
             >
               <Text style={st.pillText}>Continue</Text>
@@ -429,7 +478,7 @@ export default function DetailsScreen() {
     <MobileContainer>
       <View style={st.container}>
         <View style={st.confirmHeader}>
-          <Pressable onPress={() => setStep(2)} hitSlop={8} style={{ padding: spacing.sm }}>
+          <Pressable onPress={() => setStep(isUnverified && unverifiedResult?.had_address ? 1 : 2)} hitSlop={8} style={{ padding: spacing.sm }}>
             <ChevronLeft size={22} color={colors.foreground} />
           </Pressable>
           <Text style={st.confirmTitle}>Confirm your address</Text>

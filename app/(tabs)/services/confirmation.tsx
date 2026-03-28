@@ -25,7 +25,7 @@ export default function ConfirmationScreen() {
       try {
         const totalAmount = state.cart.reduce((sum, c) => sum + c.price * c.quantity, 0);
         const services = state.cart.map((c) => ({
-          serviceType: c.serviceName || c.serviceId,
+          serviceType: c.serviceId,
           quantity: c.quantity,
         }));
 

@@ -23,7 +23,7 @@ export async function upsertMeasurement(measurement: {
   waist_cm?: number | null;
   hips_cm?: number | null;
   shoulder_cm?: number | null;
-  measured_by?: 'self' | 'kiosk';
+  measured_by?: 'self' | 'professional';
 }): Promise<Measurement> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');

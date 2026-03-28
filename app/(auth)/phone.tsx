@@ -88,7 +88,7 @@ export default function PhoneScreen() {
           {/* Brand zone */}
           <Animated.View style={[styles.brandZone, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <Image
-              source={require('../../Branding/Logo - Light BG.png')}
+              source={require('../../assets/images/logo-light.png')}
               style={styles.logo}
               resizeMode="contain"
             />

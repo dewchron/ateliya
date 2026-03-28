@@ -78,7 +78,7 @@ export interface Database {
           waist_cm: number | null;
           hips_cm: number | null;
           shoulder_cm: number | null;
-          measured_by: 'self' | 'kiosk';
+          measured_by: 'self' | 'professional';
           created_at: string;
           updated_at: string;
         };
@@ -89,7 +89,7 @@ export interface Database {
           waist_cm?: number | null;
           hips_cm?: number | null;
           shoulder_cm?: number | null;
-          measured_by?: 'self' | 'kiosk';
+          measured_by?: 'self' | 'professional';
           created_at?: string;
           updated_at?: string;
         };
@@ -100,7 +100,7 @@ export interface Database {
           waist_cm?: number | null;
           hips_cm?: number | null;
           shoulder_cm?: number | null;
-          measured_by?: 'self' | 'kiosk';
+          measured_by?: 'self' | 'professional';
           created_at?: string;
           updated_at?: string;
         };
@@ -207,79 +207,6 @@ export interface Database {
           updated_at?: string;
         };
       };
-      edit_collections: {
-        Row: {
-          id: string;
-          title: string;
-          theme: string | null;
-          publish_date: string;
-          status: 'draft' | 'live' | 'archived';
-          year: number;
-          month: number;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          title: string;
-          theme?: string | null;
-          publish_date: string;
-          status?: 'draft' | 'live' | 'archived';
-          year: number;
-          month: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          title?: string;
-          theme?: string | null;
-          publish_date?: string;
-          status?: 'draft' | 'live' | 'archived';
-          year?: number;
-          month?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      edits: {
-        Row: {
-          id: string;
-          collection_id: string;
-          title: string;
-          subtitle: string | null;
-          description: string | null;
-          image_path: string | null;
-          sort_order: number;
-          created_by: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          collection_id: string;
-          title: string;
-          subtitle?: string | null;
-          description?: string | null;
-          image_path?: string | null;
-          sort_order?: number;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          collection_id?: string;
-          title?: string;
-          subtitle?: string | null;
-          description?: string | null;
-          image_path?: string | null;
-          sort_order?: number;
-          created_by?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
     };
     Functions: {
       is_admin: {
@@ -297,8 +224,6 @@ export type Measurement = Database['public']['Tables']['measurements']['Row'];
 export type ServicePriceRow = Database['public']['Tables']['service_prices']['Row'];
 export type Order = Database['public']['Tables']['orders']['Row'];
 export type OrderService = Database['public']['Tables']['order_services']['Row'];
-export type EditCollection = Database['public']['Tables']['edit_collections']['Row'];
-export type Edit = Database['public']['Tables']['edits']['Row'];
 
 export interface CommunityRow {
   id: string;
